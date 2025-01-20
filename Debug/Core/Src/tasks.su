@@ -1,0 +1,4 @@
+../Core/Src/tasks.c:22:6:Task_ReadSensors	88	static
+../Core/Src/tasks.c:59:6:Task_Trilateration	104	static
+../Core/Src/tasks.c:93:6:Task_Actuation	56	static
+../Core/Src/tasks.c:117:6:CreateTasks	120	static

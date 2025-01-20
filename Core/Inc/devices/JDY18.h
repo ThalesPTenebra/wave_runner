@@ -1,3 +1,8 @@
+/*
+ * Equipe: Thales Tenebra, Silvio Porto, Antonio
+ * Arquivo: JDY18.h
+ * Descrição: Implementação do driver do magnetometro.
+ */
 
 #ifndef JDY18_H
 #define JDY18_H

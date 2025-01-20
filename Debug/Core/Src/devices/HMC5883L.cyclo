@@ -1,0 +1,4 @@
+../Core/Src/devices/HMC5883L.c:21:6:HMC5883LDriver_Init	4
+../Core/Src/devices/HMC5883L.c:47:6:HMC5883LDriver_Read	2
+../Core/Src/devices/HMC5883L.c:62:6:HMC5883LDriver_Calibrate	9
+../Core/Src/devices/HMC5883L.c:92:7:HMC5883LDriver_GetHeading	4

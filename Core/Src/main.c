@@ -1,20 +1,10 @@
 /* USER CODE BEGIN Header */
-/**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2025 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+/*
+ * Equipe: Thales Tenebra, Silvio Porto, Antonio
+ * Arquivo: main.c
+ * Descrição: Arquivo principal responsável pela inicialização do sistema
+ * e gerenciamento do FreeRTOS.
+ */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -26,25 +16,16 @@
 #include <stdlib.h>
 #include <time.h>   // Para seed do gerador de números aleatórios
 #include "devices/JDY18.h"
+#include "devices/HMC5883L.h"
+#include "config.h"
+#include "tasks.h"
+#include "debug.h"
+#include "queues.h" // Inclui o arquivo de filas
 
-/* USER CODE END Includes */
 
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
+osMessageQueueId_t sensorDataQueueHandle;    // Fila para dados de sensores
+osMessageQueueId_t actuationDataQueueHandle; // Fila para dados de atuação
 
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
 
 TIM_HandleTypeDef htim2;
@@ -90,157 +71,50 @@ static void MX_USART3_UART_Init(void);
 static void MX_TIM5_Init(void);
 static void MX_TIM4_Init(void);
 void StartDefaultTask(void *argument);
-float ReadCompassAngle(void);
 
-
-/* USER CODE BEGIN PFP */
-osThreadId_t taskReadSensorsHandle;
-osMessageQueueId_t sensorDataQueueHandle;
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-/* Queue Handles */
-osMessageQueueId_t sensorDataQueueHandle;
-osMessageQueueId_t actuationDataQueueHandle;
-
-/* Structs para dados */
-typedef struct {
-    float rssi[3];         // Valores de RSSI dos beacons
-    float orientation;     // Ângulo da bússola
-} SensorData_t;
-
-void Task_ReadSensors(void *argument);
 /* USER CODE END 0 */
 
 /**
   * @brief  The application entry point.
   * @retval int
   */
-int main(void)
-{
+int main(void) {
+    // Inicialização do hardware e periféricos
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();
+    MX_DMA_Init();
+    MX_TIM3_Init();
+    MX_TIM2_Init();
+    MX_I2C1_Init();
+    MX_USART2_UART_Init();
+    MX_USART3_UART_Init();
+    MX_TIM5_Init();
+    MX_TIM4_Init();
 
-  /* USER CODE BEGIN 1 */
+    // Inicialização de dispositivos
+    JDY18_Init();
+    HMC5883LDriver_Init(&hi2c1);
 
-  /* USER CODE END 1 */
+    DEBUG_PRINT("Sistema iniciado.\n");
 
-  /* MCU Configuration--------------------------------------------------------*/
+    // Inicialização do kernel do FreeRTOS
+    osKernelInitialize();
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+    // Criação de filas
+    sensorDataQueueHandle = osMessageQueueNew(10, sizeof(SensorData_t), NULL);
+    actuationDataQueueHandle = osMessageQueueNew(10, sizeof(ActuationData_t), NULL);;
 
-  /* USER CODE BEGIN Init */
+    // Criação das tarefas
+    CreateTasks();
 
-  /* USER CODE END Init */
+    // Início do kernel do FreeRTOS
+    osKernelStart();
 
-  /* Configure the system clock */
-  SystemClock_Config();
-
-  /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_DMA_Init();
-  MX_TIM3_Init();
-  MX_TIM2_Init();
-  MX_I2C1_Init();
-  MX_USART2_UART_Init();
-  MX_USART3_UART_Init();
-  MX_TIM5_Init();
-  MX_TIM4_Init();
-  /* USER CODE BEGIN 2 */
-  JDY18_Init();
-
-  sensorDataQueueHandle = osMessageQueueNew(10, sizeof(SensorData_t), NULL); // Queue de sensores
-
-  const osThreadAttr_t taskReadSensorsAttr = {
-      .name = "Task_ReadSensors",
-      .stack_size = 512 * 4,
-      .priority = osPriorityNormal
-  };
-  taskReadSensorsHandle = osThreadNew(Task_ReadSensors, NULL, &taskReadSensorsAttr);
-
-//  osKernelStart();
-  /* USER CODE END 2 */
-
-  /* Init scheduler */
-  osKernelInitialize();
-
-  /* USER CODE BEGIN RTOS_MUTEX */
-  /* add mutexes, ... */
-  /* USER CODE END RTOS_MUTEX */
-
-  /* USER CODE BEGIN RTOS_SEMAPHORES */
-  /* add semaphores, ... */
-  /* USER CODE END RTOS_SEMAPHORES */
-
-  /* USER CODE BEGIN RTOS_TIMERS */
-  /* start timers, add new ones, ... */
-  /* USER CODE END RTOS_TIMERS */
-
-  /* USER CODE BEGIN RTOS_QUEUES */
-  /* add queues, ... */
-  /* USER CODE END RTOS_QUEUES */
-
-  /* Create the thread(s) */
-  /* creation of defaultTask */
-  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
-
-  /* USER CODE BEGIN RTOS_THREADS */
-  /* add threads, ... */
-  /* USER CODE END RTOS_THREADS */
-
-  /* USER CODE BEGIN RTOS_EVENTS */
-  /* add events, ... */
-  /* USER CODE END RTOS_EVENTS */
-
-  /* Start scheduler */
-  osKernelStart();
-
-  /* We should never get here as control is now taken by the scheduler */
-
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-    /* USER CODE END WHILE */
-    /* USER CODE BEGIN 3 */
-  }
-  /* USER CODE END 3 */
-}
-
-/* Task para leitura de sensores */
-void Task_ReadSensors(void *argument) {
-    SensorData_t sensorData;
-    for (;;) {
-        /* Varredura e processamento de dispositivos BLE */
-        printf("Scan Devices: ");
-        JDY18_ScanDevices();
-        /* Copia os valores de RSSI calculados */
-        if (JDY18_BeaconCount == 3) { // Apenas se os três beacons forem detectados
-            for (int i = 0; i < 3; i++) {
-                sensorData.rssi[i] = JDY18_RSSI[i];
-            }
-
-            /* Leitura da bússola (substituir com código real de leitura via I2C/SPI) */
-            sensorData.orientation = ReadCompassAngle();
-
-            /* Envia os dados para a fila */
-            osMessageQueuePut(sensorDataQueueHandle, &sensorData, 0, osWaitForever);
-        } else {
-            // printf("Beacons incompletos detectados: %d\n", JDY18_BeaconCount); // Apenas para debug
-        }
-
-        /* Delay para periodicidade de 100 ms */
-        osDelay(100);
+    // Loop principal para diagnóstico (caso o kernel pare)
+    while (1) {
+        HAL_Delay(1000);
     }
-}
-
-float ReadCompassAngle(void) {
-    // Retorna um valor aleatório entre 0 e 359 graus
-    return (float)(rand() % 360);
 }
 
 /**

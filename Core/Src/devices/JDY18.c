@@ -1,15 +1,20 @@
+/*
+ * Equipe: Thales Tenebra, Silvio Porto, Antonio
+ * Arquivo: JDY18.c
+ * Descrição: Implementação do driver do BLE.
+ */
+
+
 #include "devices/JDY18.h"
 
 /* Handles globais */
 TaskHandle_t JDY18_TaskHandle = NULL;  // Handle da tarefa JDY-18
 uint8_t rxBuffer[RX_BUFFER_SIZE];      // Buffer de recepção (declarado uma vez aqui)
 
-//#define BEACON_NAME_1 "PSE2022_B1"
-#define BEACON_NAME_1 "D.E.T.E"
-
+#define BEACON_NAME_1 "PSE2022_B1"
 #define BEACON_NAME_2 "PSE2022_B2"
 #define BEACON_NAME_3 "PSE2022_B3"
-#define DEBUG_MODE 1 // Defina como 1 para habilitar debug
+#define DEBUG_MODE 0 // Defina como 1 para habilitar debug
 
 /* Variáveis globais */
 float JDY18_RSSI[3] = {0.0f, 0.0f, 0.0f}; // Distâncias calculadas para cada beacon
@@ -56,7 +61,6 @@ void JDY18_ReceiveResponse(void) {
  */
 void JDY18_ScanDevices(void) {
     JDY18_BeaconCount = 0; // Reseta contadores
-
     JDY18_SendCommand("AT+INQ");
     JDY18_ReceiveResponse();
 
@@ -91,7 +95,7 @@ void JDY18_ScanDevices(void) {
     }
 
     #if DEBUG_MODE
-    printf("Total Relevant Devices Found: %d\n", JDY18_BeaconCount);
+//    printf("Total Relevant Devices Found: %d\n", JDY18_BeaconCount);
     #endif
 }
 
