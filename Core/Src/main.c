@@ -18,9 +18,14 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>   // Para seed do gerador de números aleatórios
+#include "devices/JDY18.h"
 
 /* USER CODE END Includes */
 
@@ -50,9 +55,27 @@ TIM_HandleTypeDef htim5;
 UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
 DMA_HandleTypeDef hdma_usart3_rx;
+DMA_HandleTypeDef hdma_usart3_tx;
 
+/* Definitions for defaultTask */
+osThreadId_t defaultTaskHandle;
+const osThreadAttr_t defaultTask_attributes = {
+  .name = "defaultTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
 /* USER CODE BEGIN PV */
+#ifdef __GNUC__
+#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif
 
+PUTCHAR_PROTOTYPE
+{
+  HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+  return ch;
+}
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -66,13 +89,28 @@ static void MX_USART2_UART_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_TIM5_Init(void);
 static void MX_TIM4_Init(void);
-/* USER CODE BEGIN PFP */
+void StartDefaultTask(void *argument);
+float ReadCompassAngle(void);
 
+
+/* USER CODE BEGIN PFP */
+osThreadId_t taskReadSensorsHandle;
+osMessageQueueId_t sensorDataQueueHandle;
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+/* Queue Handles */
+osMessageQueueId_t sensorDataQueueHandle;
+osMessageQueueId_t actuationDataQueueHandle;
 
+/* Structs para dados */
+typedef struct {
+    float rssi[3];         // Valores de RSSI dos beacons
+    float orientation;     // Ângulo da bússola
+} SensorData_t;
+
+void Task_ReadSensors(void *argument);
 /* USER CODE END 0 */
 
 /**
@@ -113,18 +151,96 @@ int main(void)
   MX_TIM5_Init();
   MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
+  JDY18_Init();
 
+  sensorDataQueueHandle = osMessageQueueNew(10, sizeof(SensorData_t), NULL); // Queue de sensores
+
+  const osThreadAttr_t taskReadSensorsAttr = {
+      .name = "Task_ReadSensors",
+      .stack_size = 512 * 4,
+      .priority = osPriorityNormal
+  };
+  taskReadSensorsHandle = osThreadNew(Task_ReadSensors, NULL, &taskReadSensorsAttr);
+
+//  osKernelStart();
   /* USER CODE END 2 */
+
+  /* Init scheduler */
+  osKernelInitialize();
+
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* creation of defaultTask */
+  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+  /* USER CODE BEGIN RTOS_EVENTS */
+  /* add events, ... */
+  /* USER CODE END RTOS_EVENTS */
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
     /* USER CODE END WHILE */
-
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
+}
+
+/* Task para leitura de sensores */
+void Task_ReadSensors(void *argument) {
+    SensorData_t sensorData;
+    for (;;) {
+        /* Varredura e processamento de dispositivos BLE */
+        printf("Scan Devices: ");
+        JDY18_ScanDevices();
+        /* Copia os valores de RSSI calculados */
+        if (JDY18_BeaconCount == 3) { // Apenas se os três beacons forem detectados
+            for (int i = 0; i < 3; i++) {
+                sensorData.rssi[i] = JDY18_RSSI[i];
+            }
+
+            /* Leitura da bússola (substituir com código real de leitura via I2C/SPI) */
+            sensorData.orientation = ReadCompassAngle();
+
+            /* Envia os dados para a fila */
+            osMessageQueuePut(sensorDataQueueHandle, &sensorData, 0, osWaitForever);
+        } else {
+            // printf("Beacons incompletos detectados: %d\n", JDY18_BeaconCount); // Apenas para debug
+        }
+
+        /* Delay para periodicidade de 100 ms */
+        osDelay(100);
+    }
+}
+
+float ReadCompassAngle(void) {
+    // Retorna um valor aleatório entre 0 e 359 graus
+    return (float)(rand() % 360);
 }
 
 /**
@@ -477,8 +593,11 @@ static void MX_DMA_Init(void)
 
   /* DMA interrupt init */
   /* DMA1_Stream1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
+  /* DMA1_Stream3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream3_IRQn);
 
 }
 
@@ -525,6 +644,24 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_StartDefaultTask */
+/**
+  * @brief  Function implementing the defaultTask thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_StartDefaultTask */
+void StartDefaultTask(void *argument)
+{
+  /* USER CODE BEGIN 5 */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END 5 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
