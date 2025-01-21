@@ -1,0 +1,2 @@
+../Core/Src/pwm_config.c:3:6:PwmService_SetPeriod	24	static
+../Core/Src/pwm_config.c:13:6:PwmService_SetDutyCycle	56	static

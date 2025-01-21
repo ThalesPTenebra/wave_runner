@@ -6,15 +6,18 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../Core/Src/devices/HMC5883L.c \
-../Core/Src/devices/JDY18.c 
+../Core/Src/devices/JDY18.c \
+../Core/Src/devices/L293D.c 
 
 OBJS += \
 ./Core/Src/devices/HMC5883L.o \
-./Core/Src/devices/JDY18.o 
+./Core/Src/devices/JDY18.o \
+./Core/Src/devices/L293D.o 
 
 C_DEPS += \
 ./Core/Src/devices/HMC5883L.d \
-./Core/Src/devices/JDY18.d 
+./Core/Src/devices/JDY18.d \
+./Core/Src/devices/L293D.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes
@@ -24,7 +27,7 @@ Core/Src/devices/%.o Core/Src/devices/%.su Core/Src/devices/%.cyclo: ../Core/Src
 clean: clean-Core-2f-Src-2f-devices
 
 clean-Core-2f-Src-2f-devices:
-	-$(RM) ./Core/Src/devices/HMC5883L.cyclo ./Core/Src/devices/HMC5883L.d ./Core/Src/devices/HMC5883L.o ./Core/Src/devices/HMC5883L.su ./Core/Src/devices/JDY18.cyclo ./Core/Src/devices/JDY18.d ./Core/Src/devices/JDY18.o ./Core/Src/devices/JDY18.su
+	-$(RM) ./Core/Src/devices/HMC5883L.cyclo ./Core/Src/devices/HMC5883L.d ./Core/Src/devices/HMC5883L.o ./Core/Src/devices/HMC5883L.su ./Core/Src/devices/JDY18.cyclo ./Core/Src/devices/JDY18.d ./Core/Src/devices/JDY18.o ./Core/Src/devices/JDY18.su ./Core/Src/devices/L293D.cyclo ./Core/Src/devices/L293D.d ./Core/Src/devices/L293D.o ./Core/Src/devices/L293D.su
 
 .PHONY: clean-Core-2f-Src-2f-devices
 

@@ -1,0 +1,3 @@
+../Core/Src/devices/L293D.c:4:6:L293DDriver_Init	1
+../Core/Src/devices/L293D.c:9:6:L293DDriver_SetSpeed	1
+../Core/Src/devices/L293D.c:14:6:L293DDriver_SendControl	3

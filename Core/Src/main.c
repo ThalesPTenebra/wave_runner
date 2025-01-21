@@ -17,6 +17,7 @@
 #include <time.h>   // Para seed do gerador de números aleatórios
 #include "devices/JDY18.h"
 #include "devices/HMC5883L.h"
+#include "devices/L293D.h"
 #include "config.h"
 #include "tasks.h"
 #include "debug.h"
@@ -72,6 +73,23 @@ static void MX_TIM5_Init(void);
 static void MX_TIM4_Init(void);
 void StartDefaultTask(void *argument);
 
+
+#define K_P 1.0
+
+typedef struct
+{
+	UART_HandleTypeDef* huartLocation;
+	TIM_HandleTypeDef* htimLocation;
+	I2C_HandleTypeDef* hi2cCompass;
+	TIM_HandleTypeDef* htimCompass;
+	TIM_HandleTypeDef* htimServo;
+	uint32_t channelServo;
+	TIM_HandleTypeDef* htimMotor;
+	uint32_t periodMotor;
+} ControlParamsHandleTypeDef;
+
+L293D_HandleTypeDef handlerMotor;
+
 /* USER CODE END 0 */
 
 /**
@@ -92,9 +110,35 @@ int main(void) {
     MX_TIM5_Init();
     MX_TIM4_Init();
 
+    ControlParamsHandleTypeDef handlerControl;
+    handlerControl.huartLocation = &huart3;
+    handlerControl.htimLocation = &htim5;
+    handlerControl.hi2cCompass = &hi2c1;
+    handlerControl.htimCompass = &htim5;
+    handlerControl.htimServo = &htim4;
+    handlerControl.htimMotor = &htim3;
+    handlerControl.periodMotor = 2000;
+
+	handlerMotor.htim = &htim3;
+	handlerMotor.channel = TIM_CHANNEL_2;
+	handlerMotor.EN_GPIO = L293D_EN_GPIO_Port;
+	handlerMotor.EN_Pin = L293D_EN_Pin;
+	handlerMotor.LATCH_GPIO = L293D_LATCH_GPIO_Port;
+	handlerMotor.LATCH_Pin = L293D_LATCH_Pin;
+	handlerMotor.CLK_GPIO = L293D_CLK_GPIO_Port;
+	handlerMotor.CLK_Pin = L293D_CLK_Pin;
+	handlerMotor.SER_GPIO = L293D_SER_GPIO_Port;
+	handlerMotor.SER_Pin = L293D_SER_Pin;
+
     // Inicialização de dispositivos
     JDY18_Init();
     HMC5883LDriver_Init(&hi2c1);
+	L293DDriver_Init(&handlerMotor, handlerControl.periodMotor);
+	L293DDriver_SetSpeed(&handlerMotor, 1.0);
+	HAL_Delay(10000);
+	L293DDriver_SendControl(&handlerMotor, M1_FORWARD);
+	HAL_Delay(10000);
+	L293DDriver_SendControl(&handlerMotor, M1_STOP);
 
     DEBUG_PRINT("Sistema iniciado.\n");
 

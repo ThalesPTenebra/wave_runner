@@ -1,0 +1,2 @@
+../Core/Src/pwm_config.c:3:6:PwmService_SetPeriod	1
+../Core/Src/pwm_config.c:13:6:PwmService_SetDutyCycle	1
