@@ -1,32 +1,47 @@
+#include "devices/SG90.h"
 /* USER CODE BEGIN Header */
-/*
- * Equipe: Thales Tenebra, Silvio Porto, Antonio
- * Arquivo: main.c
- * Descrição: Arquivo principal responsável pela inicialização do sistema
- * e gerenciamento do FreeRTOS.
- */
+	/*
+	 * Equipe: Thales Tenebra, Silvio Porto, Antonio
+	 * Arquivo: main.c
+	 * Descrição: Arquivo principal responsável pela inicialização do sistema
+	 * e gerenciamento do FreeRTOS.
+	 */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
-
 /* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>   // Para seed do gerador de números aleatórios
 #include "devices/JDY18.h"
+#include "devices/SG90.h"
 #include "devices/HMC5883L.h"
 #include "devices/L293D.h"
 #include "config.h"
 #include "tasks.h"
 #include "debug.h"
 #include "queues.h" // Inclui o arquivo de filas
+/* USER CODE END Includes */
 
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
 
-osMessageQueueId_t sensorDataQueueHandle;    // Fila para dados de sensores
-osMessageQueueId_t actuationDataQueueHandle; // Fila para dados de atuação
+/* USER CODE END PTD */
 
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
 
 TIM_HandleTypeDef htim2;
@@ -47,17 +62,17 @@ const osThreadAttr_t defaultTask_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
-#ifdef __GNUC__
-#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
-#else
-#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
-#endif
+	#ifdef __GNUC__
+	#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+	#else
+	#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+	#endif
 
-PUTCHAR_PROTOTYPE
-{
-  HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
-  return ch;
-}
+	PUTCHAR_PROTOTYPE
+	{
+	  HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+	  return ch;
+	}
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -73,92 +88,91 @@ static void MX_TIM5_Init(void);
 static void MX_TIM4_Init(void);
 void StartDefaultTask(void *argument);
 
+/* USER CODE BEGIN PFP */
 
-#define K_P 1.0
+/* USER CODE END PFP */
 
-typedef struct
-{
-	UART_HandleTypeDef* huartLocation;
-	TIM_HandleTypeDef* htimLocation;
-	I2C_HandleTypeDef* hi2cCompass;
-	TIM_HandleTypeDef* htimCompass;
-	TIM_HandleTypeDef* htimServo;
-	uint32_t channelServo;
-	TIM_HandleTypeDef* htimMotor;
-	uint32_t periodMotor;
-} ControlParamsHandleTypeDef;
-
-L293D_HandleTypeDef handlerMotor;
-
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
+osMessageQueueId_t sensorDataQueueHandle;    // Fila para dados de sensores
+osMessageQueueId_t actuationDataQueueHandle; // Fila para dados de atuação
 /* USER CODE END 0 */
 
 /**
   * @brief  The application entry point.
   * @retval int
   */
-int main(void) {
-    // Inicialização do hardware e periféricos
-    HAL_Init();
-    SystemClock_Config();
-    MX_GPIO_Init();
-    MX_DMA_Init();
-    MX_TIM3_Init();
-    MX_TIM2_Init();
-    MX_I2C1_Init();
-    MX_USART2_UART_Init();
-    MX_USART3_UART_Init();
-    MX_TIM5_Init();
-    MX_TIM4_Init();
+int main(void)
+{
 
-    ControlParamsHandleTypeDef handlerControl;
-    handlerControl.huartLocation = &huart3;
-    handlerControl.htimLocation = &htim5;
-    handlerControl.hi2cCompass = &hi2c1;
-    handlerControl.htimCompass = &htim5;
-    handlerControl.htimServo = &htim4;
-    handlerControl.htimMotor = &htim3;
-    handlerControl.periodMotor = 2000;
+  /* USER CODE BEGIN 1 */
 
-	handlerMotor.htim = &htim3;
-	handlerMotor.channel = TIM_CHANNEL_2;
-	handlerMotor.EN_GPIO = L293D_EN_GPIO_Port;
-	handlerMotor.EN_Pin = L293D_EN_Pin;
-	handlerMotor.LATCH_GPIO = L293D_LATCH_GPIO_Port;
-	handlerMotor.LATCH_Pin = L293D_LATCH_Pin;
-	handlerMotor.CLK_GPIO = L293D_CLK_GPIO_Port;
-	handlerMotor.CLK_Pin = L293D_CLK_Pin;
-	handlerMotor.SER_GPIO = L293D_SER_GPIO_Port;
-	handlerMotor.SER_Pin = L293D_SER_Pin;
+  /* USER CODE END 1 */
 
-    // Inicialização de dispositivos
-    JDY18_Init();
-    HMC5883LDriver_Init(&hi2c1);
-	L293DDriver_Init(&handlerMotor, handlerControl.periodMotor);
-	L293DDriver_SetSpeed(&handlerMotor, 1.0);
-	HAL_Delay(10000);
-	L293DDriver_SendControl(&handlerMotor, M1_FORWARD);
-	HAL_Delay(10000);
-	L293DDriver_SendControl(&handlerMotor, M1_STOP);
+  /* MCU Configuration--------------------------------------------------------*/
 
-    DEBUG_PRINT("Sistema iniciado.\n");
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
 
-    // Inicialização do kernel do FreeRTOS
-    osKernelInitialize();
+  /* USER CODE BEGIN Init */
 
-    // Criação de filas
-    sensorDataQueueHandle = osMessageQueueNew(10, sizeof(SensorData_t), NULL);
-    actuationDataQueueHandle = osMessageQueueNew(10, sizeof(ActuationData_t), NULL);;
+  /* USER CODE END Init */
 
-    // Criação das tarefas
-    CreateTasks();
+  /* Configure the system clock */
+  SystemClock_Config();
 
-    // Início do kernel do FreeRTOS
-    osKernelStart();
+  /* USER CODE BEGIN SysInit */
 
-    // Loop principal para diagnóstico (caso o kernel pare)
-    while (1) {
-        HAL_Delay(1000);
-    }
+  /* USER CODE END SysInit */
+
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_DMA_Init();
+  MX_TIM3_Init();
+  MX_TIM2_Init();
+  MX_I2C1_Init();
+  MX_USART2_UART_Init();
+  MX_USART3_UART_Init();
+  MX_TIM5_Init();
+  MX_TIM4_Init();
+
+
+  // Inicialização de dispositivos
+  JDY18_Init();
+  HMC5883LDriver_Init(&hi2c1);
+
+  DEBUG_PRINT("Sistema iniciado.\n");
+
+  // Inicialização do kernel do FreeRTOS
+  osKernelInitialize();
+
+  // Criação de filas
+  sensorDataQueueHandle = osMessageQueueNew(10, sizeof(SensorData_t), NULL);
+  actuationDataQueueHandle = osMessageQueueNew(10, sizeof(ActuationData_t), NULL);;
+
+  L293D_HandleTypeDef motorHandle = {
+      .htim = &htim3,
+      .channel = TIM_CHANNEL_2,
+      .EN_GPIO = GPIOA,
+      .EN_Pin = GPIO_PIN_8,
+      .LATCH_GPIO = GPIOA,
+      .LATCH_Pin = GPIO_PIN_9,
+      .SER_GPIO = GPIOA,
+      .SER_Pin = GPIO_PIN_10,
+      .CLK_GPIO = GPIOA,
+      .CLK_Pin = GPIO_PIN_11
+  };
+  CreateTasks(&motorHandle);
+
+
+  // Início do kernel do FreeRTOS
+  osKernelStart();
+
+  // Loop principal para diagnóstico (caso o kernel pare)
+  while (1) {
+	  HAL_Delay(1000);
+  }
+  /* USER CODE END 3 */
 }
 
 /**
@@ -564,20 +578,20 @@ static void MX_GPIO_Init(void)
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
-/**
-  * @brief  Function implementing the defaultTask thread.
-  * @param  argument: Not used
-  * @retval None
-  */
+	/**
+	 * @brief  Function implementing the defaultTask thread.
+	 * @param  argument: Not used
+	 * @retval None
+	 */
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+	  /* Infinite loop */
+	  for (;;)
+	  {
+		osDelay(1);
+	  }
   /* USER CODE END 5 */
 }
 
@@ -588,11 +602,11 @@ void StartDefaultTask(void *argument)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-  __disable_irq();
-  while (1)
-  {
-  }
+	  /* User can add his own implementation to report the HAL error return state */
+	  __disable_irq();
+	  while (1)
+	  {
+	  }
   /* USER CODE END Error_Handler_Debug */
 }
 
@@ -607,8 +621,8 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+	  /* User can add his own implementation to report the file name and line number,
+		 ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

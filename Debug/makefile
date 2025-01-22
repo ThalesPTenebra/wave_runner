@@ -65,8 +65,8 @@ all: main-build
 main-build: wave_runner.elf secondary-outputs
 
 # Tool invocations
-wave_runner.elf wave_runner.map: $(OBJS) $(USER_OBJS) C:\Users\thale\STM32CubeIDE\workspace_1.16.1\wave_runner\STM32F446RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "wave_runner.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\thale\STM32CubeIDE\workspace_1.16.1\wave_runner\STM32F446RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="wave_runner.map" -Wl,--gc-sections -static -u _printf_float --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+wave_runner.elf wave_runner.map: $(OBJS) $(USER_OBJS) C:\Users\thale\Documents\wave_runner\STM32F446RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "wave_runner.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\thale\Documents\wave_runner\STM32F446RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="wave_runner.map" -Wl,--gc-sections -static -u _printf_float --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

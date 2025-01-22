@@ -1,6 +1,8 @@
 "./Core/Src/devices/HMC5883L.o"
 "./Core/Src/devices/JDY18.o"
 "./Core/Src/devices/L293D.o"
+"./Core/Src/devices/SG90.o"
+"./Core/Src/devices/rudder.o"
 "./Core/Src/freertos.o"
 "./Core/Src/main.o"
 "./Core/Src/pwm_config.o"

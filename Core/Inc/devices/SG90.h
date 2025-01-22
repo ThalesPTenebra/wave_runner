@@ -36,9 +36,8 @@ typedef struct {
     uint16_t SER_Pin;
 } L293D_HandleTypeDef;
 
-/* Funções públicas do driver */
 /**
- * @brief Inicializa o módulo L293D com os parâmetros iniciais de controle do motor.
+ * @brief Inicializa o módulo L293D com parâmetros iniciais de controle.
  *
  * @param handler Ponteiro para o handler do módulo L293D.
  * @param period Período inicial do timer.
@@ -46,10 +45,10 @@ typedef struct {
 void L293DDriver_Init(L293D_HandleTypeDef* handler, uint32_t period);
 
 /**
- * @brief Define o valor de velocidade do motor.
+ * @brief Define a velocidade do motor.
  *
  * @param handler Ponteiro para o handler do módulo L293D.
- * @param speed Velocidade relativa do motor, onde 0.0 é a velocidade mínima e 1.0 a máxima.
+ * @param speed Velocidade relativa do motor (0.0 = mínimo, 1.0 = máximo).
  */
 void L293DDriver_SetSpeed(L293D_HandleTypeDef* handler, float speed);
 
@@ -57,7 +56,7 @@ void L293DDriver_SetSpeed(L293D_HandleTypeDef* handler, float speed);
  * @brief Envia comandos de controle para o módulo.
  *
  * @param handler Ponteiro para o handler do módulo L293D.
- * @param control Comando de controle definido pelo enum L293D_Control.
+ * @param control Comando de controle (direção e estado).
  */
 void L293DDriver_SendControl(L293D_HandleTypeDef* handler, L293D_Control control);
 

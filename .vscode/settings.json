@@ -1,0 +1,6 @@
+{
+  "files.associations": {
+    "l293d.h": "c",
+    "pwm_config.h": "c"
+  }
+}

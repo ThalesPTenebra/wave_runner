@@ -1,6 +1,12 @@
+/*
+ * Equipe: Thales Tenebra, Silvio Porto, Antonio
+ * Arquivo: pwm_config.c
+ * Descrição: Configuração e serviços de controle PWM para o sistema.
+ */
+
 #include "pwm_config.h"
 
-void PwmService_SetPeriod(TIM_HandleTypeDef* htim, uint32_t channel, uint32_t period)
+void PwmService_SetPeriod(TIM_HandleTypeDef *htim, uint32_t channel, uint32_t period)
 {
 	HAL_TIM_PWM_Stop(htim, channel);
 
@@ -10,11 +16,11 @@ void PwmService_SetPeriod(TIM_HandleTypeDef* htim, uint32_t channel, uint32_t pe
 	HAL_TIM_PWM_Start(htim, channel);
 }
 
-void PwmService_SetDutyCycle(TIM_HandleTypeDef* htim, uint32_t channel, float duty_cycle)
+void PwmService_SetDutyCycle(TIM_HandleTypeDef *htim, uint32_t channel, float duty_cycle)
 {
 	HAL_TIM_PWM_Stop(htim, channel);
 
-	uint32_t pulse = duty_cycle*htim->Init.Period;
+	uint32_t pulse = duty_cycle * htim->Init.Period;
 
 	TIM_OC_InitTypeDef sConfigOC = {0};
 	sConfigOC.OCMode = TIM_OCMODE_PWM1;
