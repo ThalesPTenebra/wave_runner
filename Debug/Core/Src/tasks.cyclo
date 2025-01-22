@@ -1,4 +1,4 @@
 ../Core/Src/tasks.c:36:6:Task_Trilateration	2
-../Core/Src/tasks.c:70:6:Task_Actuation	6
-../Core/Src/tasks.c:129:6:CreateTasks	1
-../Core/Src/tasks.c:155:6:Task_ReadSensors	3
+../Core/Src/tasks.c:73:6:Task_Actuation	6
+../Core/Src/tasks.c:139:6:CreateTasks	1
+../Core/Src/tasks.c:162:6:Task_ReadSensors	3

@@ -9,9 +9,9 @@
 #include "config.h"
 #include "devices/JDY18.h"
 #include "devices/HMC5883L.h"
-#include "devices/SG90.h" // Para controle do servo
+#include "devices/SG90.h"  // Para controle do servo
 #include "devices/L293D.h" // Para controle do motor
-#include "queues.h" // Para acessar as filas globais
+#include "queues.h"        // Para acessar as filas globais
 
 /* Handles das tarefas */
 osThreadId_t taskReadSensorsHandle;
@@ -33,13 +33,16 @@ L293D_HandleTypeDef propulsionMotor;
  * @param currentY Posição Y atual.
  * @return Índice do próximo beacon alvo.
  */
-void Task_Trilateration(void *argument) {
+void Task_Trilateration(void *argument)
+{
     DEBUG_PRINT("Task_Trilateration iniciada.\n");
     SensorData_t sensorData;
     ActuationData_t actuationData;
 
-    while (1) {
-        if (osMessageQueueGet(sensorDataQueueHandle, &sensorData, NULL, osWaitForever) == osOK) {
+    while (1)
+    {
+        if (osMessageQueueGet(sensorDataQueueHandle, &sensorData, NULL, osWaitForever) == osOK)
+        {
             // Trilateração com as distâncias dos beacons
             float A = -2 * BEACON_X1 + 2 * BEACON_X2;
             float B = -2 * BEACON_Y1 + 2 * BEACON_Y2;
@@ -67,7 +70,8 @@ void Task_Trilateration(void *argument) {
 /**
  * @brief Tarefa responsável por controlar os atuadores do sistema.
  */
-void Task_Actuation(void *argument) {
+void Task_Actuation(void *argument)
+{
     DEBUG_PRINT("Task_Actuation iniciada.\n");
     ActuationData_t actuationData;
     int currentTargetIndex = 0;
@@ -75,18 +79,21 @@ void Task_Actuation(void *argument) {
     float beaconPositions[3][2] = {
         {BEACON_X1, BEACON_Y1},
         {BEACON_X2, BEACON_Y2},
-        {BEACON_X3, BEACON_Y3}
-    };
+        {BEACON_X3, BEACON_Y3}};
 
-    // Extrai o handle do timer recebido como argumento
-    TIM_HandleTypeDef* htim = ((L293D_HandleTypeDef*)argument)->htim;
-    propulsionMotor = *(L293D_HandleTypeDef*)argument;
+    // Extrai os handles dos timers e do motor a partir do argumento
+    TaskActuationArgs_t *args = (TaskActuationArgs_t *)argument;
+    TIM_HandleTypeDef *motorTimer = args->motorTimer;
+    TIM_HandleTypeDef *servoTimer = args->servoTimer;
+    L293D_HandleTypeDef *motorHandle = &args->motorHandle;
 
     // Inicializa o motor de propulsão
-    L293DDriver_Init(&propulsionMotor, 20000); // Período de 20ms
+    L293DDriver_Init(motorHandle, 20000); // Período de 20ms para o motor
 
-    while (1) {
-        if (osMessageQueueGet(actuationDataQueueHandle, &actuationData, NULL, osWaitForever) == osOK) {
+    while (1)
+    {
+        if (osMessageQueueGet(actuationDataQueueHandle, &actuationData, NULL, osWaitForever) == osOK)
+        {
             float targetX = beaconPositions[currentTargetIndex][0];
             float targetY = beaconPositions[currentTargetIndex][1];
 
@@ -95,7 +102,8 @@ void Task_Actuation(void *argument) {
             float distanceToTarget = sqrtf(errorX * errorX + errorY * errorY);
 
             // Troca de alvo se dentro da margem de erro
-            if (distanceToTarget <= ERROR_MARGIN_DISTANCE) {
+            if (distanceToTarget <= ERROR_MARGIN_DISTANCE)
+            {
                 currentTargetIndex = (currentTargetIndex + 1) % 3;
                 DEBUG_PRINT("Alvo alcançado. Próximo alvo: Beacon %d.\n", currentTargetIndex + 1);
                 continue;
@@ -105,18 +113,20 @@ void Task_Actuation(void *argument) {
             float headingError = targetHeading - actuationData.heading;
 
             // Normaliza o erro para o intervalo [-180, 180]
-            while (headingError > 180.0f) headingError -= 360.0f;
-            while (headingError < -180.0f) headingError += 360.0f;
+            while (headingError > 180.0f)
+                headingError -= 360.0f;
+            while (headingError < -180.0f)
+                headingError += 360.0f;
 
             // Converte erro angular para graus para o servo SG90
             int16_t servoPosition = (int16_t)(-headingError); // Inverte o sinal para alinhar o controle
 
-            // Aplica posição ao servo
-            SG90Driver_SetPosition(htim, SG90_CHANNEL, servoPosition);
+            // Aplica posição ao servo (usando o timer do servo)
+            SG90Driver_SetPosition(servoTimer, TIM_CHANNEL_1, servoPosition);
 
             // Ajusta velocidade proporcional à distância
             float speed = (distanceToTarget > 5.0f) ? 1.0f : distanceToTarget / 5.0f; // Velocidade máxima para distância > 5m
-            L293DDriver_SetSpeed(&propulsionMotor, speed);
+            L293DDriver_SetSpeed(motorHandle, speed);
 
             // Log para depuração
             DEBUG_PRINT("Erro de orientação: %.2f graus. Velocidade: %.2f.\n", headingError, speed);
@@ -126,43 +136,45 @@ void Task_Actuation(void *argument) {
     }
 }
 
-void CreateTasks(L293D_HandleTypeDef* motorHandle) {
+void CreateTasks(TaskActuationArgs_t *actuationArgs)
+{
     const osThreadAttr_t taskReadSensorsAttr = {
         .name = "Task_ReadSensors",
         .stack_size = 512 * 4,
-        .priority = osPriorityNormal
-    };
+        .priority = osPriorityNormal};
     taskReadSensorsHandle = osThreadNew(Task_ReadSensors, NULL, &taskReadSensorsAttr);
 
     const osThreadAttr_t taskTrilaterationAttr = {
         .name = "Task_Trilateration",
         .stack_size = 512 * 4,
-        .priority = osPriorityBelowNormal
-    };
+        .priority = osPriorityBelowNormal};
     taskTrilaterationHandle = osThreadNew(Task_Trilateration, NULL, &taskTrilaterationAttr);
 
     const osThreadAttr_t taskActuationAttr = {
         .name = "Task_Actuation",
-        .stack_size = 512 * 4,
-        .priority = osPriorityAboveNormal
-    };
-    taskActuationHandle = osThreadNew(Task_Actuation, motorHandle, &taskActuationAttr);
+        .stack_size = 1024 * 4, // Aumentado para evitar stack overflow
+        .priority = osPriorityAboveNormal};
+    taskActuationHandle = osThreadNew(Task_Actuation, actuationArgs, &taskActuationAttr);
 
     DEBUG_PRINT("Tarefas criadas com sucesso.\n");
 }
 
-
-void Task_ReadSensors(void *argument) {
+void Task_ReadSensors(void *argument)
+{
     SensorData_t sensorData;
 
     printf("Task_ReadSensors inicializada.\n");
 
-    while (1) {
+    while (1)
+    {
+        printf("Task_ReadSensors inicializada 2.\n");
+
         // Leitura das distâncias dos beacons
         JDY18_ScanDevices(); // Atualiza JDY18_RSSI diretamente para distâncias em metros
 
         // Copia as distâncias dos beacons para o struct SensorData_t
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 3; i++)
+        {
             sensorData.distances[i] = JDY18_RSSI[i];
         }
 
@@ -175,9 +187,12 @@ void Task_ReadSensors(void *argument) {
                sensorData.distances[2], sensorData.orientation);
 
         // Envia os dados para a fila
-        if (osMessageQueuePut(sensorDataQueueHandle, &sensorData, 0, osWaitForever) == osOK) {
+        if (osMessageQueuePut(sensorDataQueueHandle, &sensorData, 0, osWaitForever) == osOK)
+        {
             printf("Dados de sensores enviados para a fila.\n");
-        } else {
+        }
+        else
+        {
             printf("Erro ao enviar dados de sensores para a fila.\n");
         }
 
